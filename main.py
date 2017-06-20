@@ -23,6 +23,10 @@ def trade_in_refresh_token(config):
         auth=HTTPBasicAuth(config['client_id'], config['client_secret'])
     )
 
+    if response.status_code != 200:
+        print('Status code: {}; content: {}'.format(response.status_code, response.text))
+        response.raise_for_status()
+
     return response.json()
 
 def store_new_refresh_token(config):
