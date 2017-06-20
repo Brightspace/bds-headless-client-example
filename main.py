@@ -24,28 +24,21 @@ def trade_in_refresh_token(config):
 
     return response.json()
 
-def store_new_refresh_token(refresh_token):
-    config = get_config()
-    config['refresh_token'] = refresh_token
+def store_new_refresh_token(config):
     with open(CONFIG_LOCATION, 'w') as f:
         f.write(json.dumps(config))
-
-def make_request(endpoint, access_token):
-    response = requests.get(
-        endpoint,
-        headers={'Authorization': 'Bearer {}'.format(access_token)}
-    )
-
-    print(response.json())
 
 if __name__ == '__main__':
     config = get_config()
     config['auth_service'] = config.get('auth_service', AUTH_SERVICE)
 
     token_response = trade_in_refresh_token(config)
-    store_new_refresh_token(token_response['refresh_token'])
 
-    make_request(
+    config['refresh_token'] = token_response['refresh_token']
+    store_new_refresh_token(config)
+
+    response = requests.get(
         '{}/d2l/api/lp/1.9/users/whoami'.format(config['bspace_url']),
-        token_response['access_token']
+        headers={'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     )
+    print(response.json())
