@@ -10,8 +10,10 @@ def get_config():
         return json.load(f)
 
 def trade_in_refresh_token(config):
+    # https://tools.ietf.org/html/rfc6749#section-6
     response = requests.post(
         '{}/core/connect/token'.format(config['auth_service']),
+        # Content-Type 'application/x-www-form-urlencoded'
         data={
             'grant_type': 'refresh_token',
             'refresh_token': config['refresh_token'],
