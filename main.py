@@ -2,8 +2,9 @@ import json
 import requests
 from requests.auth import HTTPBasicAuth
 
-CONFIG_LOCATION = 'config.json'
+API_VERSION = '1.9'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
+CONFIG_LOCATION = 'config.json'
 
 def get_config():
     with open(CONFIG_LOCATION, 'r') as f:
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     store_new_refresh_token(config)
 
     response = requests.get(
-        '{}/d2l/api/lp/1.9/users/whoami'.format(config['bspace_url']),
+        '{}/d2l/api/lp/{}/users/whoami'.format(config['bspace_url'], API_VERSION),
         headers={'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     )
     print(response.json())
