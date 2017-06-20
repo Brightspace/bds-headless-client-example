@@ -26,7 +26,7 @@ def trade_in_refresh_token(config):
 
 def store_new_refresh_token(config):
     with open(CONFIG_LOCATION, 'w') as f:
-        f.write(json.dumps(config))
+        json.dump(config, f, sort_keys=True)
 
 if __name__ == '__main__':
     config = get_config()
