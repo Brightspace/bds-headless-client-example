@@ -1,3 +1,4 @@
+import logging
 import json
 import requests
 from requests.auth import HTTPBasicAuth
@@ -5,6 +6,8 @@ from requests.auth import HTTPBasicAuth
 API_VERSION = '1.9'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
 CONFIG_LOCATION = 'config.json'
+
+logger = logging.getLogger(__name__)
 
 def get_config():
     with open(CONFIG_LOCATION, 'r') as f:
@@ -24,12 +27,12 @@ def trade_in_refresh_token(config):
     )
 
     if response.status_code != 200:
-        print('Status code: {}; content: {}'.format(response.status_code, response.text))
+        logger.error('Status code: %s; content: %s', response.status_code, response.text)
         response.raise_for_status()
 
     return response.json()
 
-def store_new_refresh_token(config):
+def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
@@ -39,8 +42,9 @@ if __name__ == '__main__':
 
     token_response = trade_in_refresh_token(config)
 
+    # Store the new refresh token for getting a new access token next run
     config['refresh_token'] = token_response['refresh_token']
-    store_new_refresh_token(config)
+    put_config(config)
 
     response = requests.get(
         '{}/d2l/api/lp/{}/users/whoami'.format(config['bspace_url'], API_VERSION),
