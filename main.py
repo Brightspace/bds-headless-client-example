@@ -1,11 +1,21 @@
-import logging
+import io
 import json
+import logging
+import zipfile
+
+import psycopg2
 import requests
 from requests.auth import HTTPBasicAuth
 
-API_VERSION = '1.9'
+API_VERSION = 'unstable'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
 CONFIG_LOCATION = 'config.json'
+PLUGINS_AND_TABLE = [
+    ('793668a8-2c58-4e5e-b263-412d28d5703f', 'grade_objects'),
+    ('07a9e561-e22f-4e82-8dd6-7bfb14c91776', 'org_units'),
+    ('1d6d722e-b572-456f-97c1-d526570daa6b', 'users'),
+    ('9d8a96b4-8145-416d-bd18-11402bc58f8d', 'grade_results')
+]
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +31,7 @@ def trade_in_refresh_token(config):
         data={
             'grant_type': 'refresh_token',
             'refresh_token': config['refresh_token'],
-            'scope': 'core:*:*'
+            'scope': 'core:*:* datahub:*:*'
         },
         auth=HTTPBasicAuth(config['client_id'], config['client_secret'])
     )
@@ -36,6 +46,25 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
+def generate_db_conn_params(config):
+    return {
+        'host': config['dbhost'],
+        'dbname': config['dbname'],
+        'user': config['dbuser'],
+        'password': config['dbpassword']
+    }
+
+def get_zipped_data_set(config, plugin):
+    endpoint = '{}/d2l/api/lp/{}/dataExport/bds/{}'.format(
+        config['bspace_url'],
+        API_VERSION,
+        plugin
+    )
+    headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
+    response = requests.get(endpoint, headers=headers)
+
+    return zipfile.ZipFile(io.BytesIO(response.content))
+
 if __name__ == '__main__':
     config = get_config()
     config['auth_service'] = config.get('auth_service', AUTH_SERVICE)
@@ -46,8 +75,32 @@ if __name__ == '__main__':
     config['refresh_token'] = token_response['refresh_token']
     put_config(config)
 
-    response = requests.get(
-        '{}/d2l/api/lp/{}/users/whoami'.format(config['bspace_url'], API_VERSION),
-        headers={'Authorization': 'Bearer {}'.format(token_response['access_token'])}
-    )
-    print(response.json())
+    db_conn_params = generate_db_conn_params(config)
+
+    for plugin, table in PLUGINS_AND_TABLE:
+        zipped_ds = get_zipped_data_set(config, plugin)
+
+        files = zipped_ds.namelist()
+        assert len(files) == 1
+
+        csv_name = files[0]
+        # CSV file is UTF-8-BOM encoded
+        csv_data = zipped_ds.read(csv_name).decode('utf-8-sig')
+
+        with psycopg2.connect(**db_conn_params) as conn:
+            with conn.cursor() as cur:
+                '''
+                Note: using '.format()' because the table name can not be a SQL
+                parameter. This is safe in this context because 'table' is a
+                hardcoded value. In other contexts, always use SQL parameters
+                when possible.
+                '''
+                cur.execute('TRUNCATE TABLE {};'.format(table))
+                cur.copy_expert(
+                    'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER)'.format(table),
+                    io.StringIO(csv_data)
+                )
+                cur.execute('SELECT * FROM {};'.format(table))
+                print(cur.fetchone())
+
+            conn.commit()

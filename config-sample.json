@@ -2,5 +2,9 @@
     "bspace_url": "https://<domain>/",
     "client_id": "<client_id>",
     "client_secret": "<client_secret>",
-    "refresh_token": "<refresh_token>"
+    "refresh_token": "<refresh_token>",
+    "dbhost": "<dbhost>",
+    "dbname": "<dbname>",
+    "dbuser": "<dbuser>",
+    "dbpassword": "<dbpassword>"
 }
