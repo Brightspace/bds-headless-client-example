@@ -31,7 +31,7 @@ def trade_in_refresh_token(config):
         data={
             'grant_type': 'refresh_token',
             'refresh_token': config['refresh_token'],
-            'scope': 'core:*:* datahub:*:*'
+            'scope': 'datahub:*:*'
         },
         auth=HTTPBasicAuth(config['client_id'], config['client_secret'])
     )
