@@ -65,6 +65,34 @@ def get_zipped_data_set(config, plugin):
 
     return zipfile.ZipFile(io.BytesIO(response.content))
 
+def get_csv_data(zipped_data_set):
+    files = zipped_data_set.namelist()
+    assert len(files) == 1
+
+    csv_name = files[0]
+    # CSV file is UTF-8-BOM encoded
+    csv_data = zipped_data_set.read(csv_name).decode('utf-8-sig')
+    return csv_data
+
+def update_db(db_conn_params, table, csv_data):
+    with psycopg2.connect(**db_conn_params) as conn:
+        with conn.cursor() as cur:
+            '''
+            Note: using '.format()' because the table name can not be a SQL
+            parameter. This is safe in this context because 'table' is a
+            hardcoded value. In other contexts, always use SQL parameters
+            when possible.
+            '''
+            cur.execute('TRUNCATE TABLE {};'.format(table))
+            cur.copy_expert(
+                'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER)'.format(table),
+                io.StringIO(csv_data)
+            )
+            cur.execute('SELECT * FROM {};'.format(table))
+            print(cur.fetchone())
+
+        conn.commit()
+
 if __name__ == '__main__':
     config = get_config()
     config['auth_service'] = config.get('auth_service', AUTH_SERVICE)
@@ -79,28 +107,7 @@ if __name__ == '__main__':
 
     for plugin, table in PLUGINS_AND_TABLE:
         zipped_ds = get_zipped_data_set(config, plugin)
+        csv_data = get_csv_data(zipped_ds)
+        update_db(db_conn_params, table, csv_data)
 
-        files = zipped_ds.namelist()
-        assert len(files) == 1
 
-        csv_name = files[0]
-        # CSV file is UTF-8-BOM encoded
-        csv_data = zipped_ds.read(csv_name).decode('utf-8-sig')
-
-        with psycopg2.connect(**db_conn_params) as conn:
-            with conn.cursor() as cur:
-                '''
-                Note: using '.format()' because the table name can not be a SQL
-                parameter. This is safe in this context because 'table' is a
-                hardcoded value. In other contexts, always use SQL parameters
-                when possible.
-                '''
-                cur.execute('TRUNCATE TABLE {};'.format(table))
-                cur.copy_expert(
-                    'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER)'.format(table),
-                    io.StringIO(csv_data)
-                )
-                cur.execute('SELECT * FROM {};'.format(table))
-                print(cur.fetchone())
-
-            conn.commit()
