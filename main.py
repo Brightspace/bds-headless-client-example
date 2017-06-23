@@ -24,26 +24,26 @@ DATA_SET_METADATA = [
         update_query='''
             INSERT INTO org_units
                 SELECT
-                    OrgUnitId,
-                    Organization,
-                    Type,
-                    Name,
-                    Code,
-                    StartDate,
-                    EndDate,
-                    IsActive,
-                    CreatedDate
+                    org_unit_id,
+                    organization,
+                    type,
+                    name,
+                    code,
+                    start_date,
+                    end_date,
+                    is_active,
+                    created_date
                 FROM tmp_org_units
             ON CONFLICT ON CONSTRAINT org_units_pkey
             DO UPDATE SET
-                Organization = EXCLUDED.Organization,
-                Type = EXCLUDED.Type,
-                Name = EXCLUDED.Name,
-                Code = EXCLUDED.Code,
-                StartDate = EXCLUDED.StartDate,
-                EndDate = EXCLUDED.EndDate,
-                IsActive = EXCLUDED.IsActive,
-                CreatedDate = EXCLUDED.CreatedDate
+                organization = EXCLUDED.organization,
+                type = EXCLUDED.type,
+                name = EXCLUDED.name,
+                code = EXCLUDED.code,
+                start_date = EXCLUDED.start_date,
+                end_date = EXCLUDED.end_date,
+                is_active = EXCLUDED.is_active,
+                created_date = EXCLUDED.created_date
             ;
         '''
     ),
@@ -110,30 +110,30 @@ DATA_SET_METADATA = [
         update_query='''
             INSERT INTO users
                 SELECT
-                    UserId,
-                    UserName,
-                    OrgDefinedId,
-                    FirstName,
-                    MiddleName,
-                    LastName,
-                    IsActive,
+                    user_id,
+                    user_name,
+                    org_defined_id,
+                    first_name,
+                    middle_name,
+                    last_name,
+                    is_active,
                     Organization,
-                    InternalEmail,
-                    ExternalEmail,
-                    SignupDate
+                    internal_email,
+                    external_email,
+                    signup_date
                 FROM tmp_users
             ON CONFLICT ON CONSTRAINT users_pkey
             DO UPDATE SET
-                UserName = EXCLUDED.UserName,
-                OrgDefinedId = EXCLUDED.OrgDefinedId,
-                FirstName = EXCLUDED.FirstName,
-                MiddleName = EXCLUDED.MiddleName,
-                LastName = EXCLUDED.LastName,
-                IsActive = EXCLUDED.IsActive,
-                Organization = EXCLUDED.Organization,
-                InternalEmail = EXCLUDED.InternalEmail,
-                ExternalEmail = EXCLUDED.ExternalEmail,
-                SignupDate = EXCLUDED.SignupDate
+                user_name = EXCLUDED.user_name,
+                org_defined_id = EXCLUDED.org_defined_id,
+                first_name = EXCLUDED.first_name,
+                middle_name = EXCLUDED.middle_name,
+                last_name = EXCLUDED.last_name,
+                is_active = EXCLUDED.is_active,
+                organization = EXCLUDED.organization,
+                internal_email = EXCLUDED.internal_email,
+                external_email = EXCLUDED.external_email,
+                signup_date = EXCLUDED.signup_date
             ;
         '''
     ),
