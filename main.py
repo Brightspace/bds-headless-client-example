@@ -47,10 +47,10 @@ def put_config(config):
         json.dump(config, f, sort_keys=True)
 
 def get_zipped_data_set(config, plugin):
-    endpoint = '{}/d2l/api/lp/{}/dataExport/bds/{}'.format(
-        config['bspace_url'],
-        API_VERSION,
-        plugin
+    endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/{plugin_id}'.format(
+        bspace_url=config['bspace_url'],
+        lp_version=API_VERSION,
+        plugin_id=plugin
     )
     headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     response = requests.get(endpoint, headers=headers)
