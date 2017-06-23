@@ -46,7 +46,7 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
-def get_zipped_data_set(config, plugin):
+def get_csv_data(config, plugin):
     endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/{plugin_id}'.format(
         bspace_url=config['bspace_url'],
         lp_version=API_VERSION,
@@ -55,16 +55,16 @@ def get_zipped_data_set(config, plugin):
     headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     response = requests.get(endpoint, headers=headers)
 
-    return zipfile.ZipFile(io.BytesIO(response.content))
+    with io.BytesIO(response.content) as response_stream:
+        with zipfile.ZipFile(response_stream) as zipped_data_set:
+            files = zipped_data_set.namelist()
 
-def get_csv_data(zipped_data_set):
-    files = zipped_data_set.namelist()
-    assert len(files) == 1
+            assert len(files) == 1
+            csv_name = files[0]
 
-    csv_name = files[0]
-    # CSV file is UTF-8-BOM encoded
-    csv_data = zipped_data_set.read(csv_name).decode('utf-8-sig')
-    return csv_data
+            # CSV file is UTF-8-BOM encoded
+            csv_data = zipped_data_set.read(csv_name).decode('utf-8-sig')
+            return csv_data
 
 def update_db(db_conn_params, table, csv_data):
     with psycopg2.connect(**db_conn_params) as conn:
@@ -103,8 +103,7 @@ if __name__ == '__main__':
     }
 
     for plugin, table in PLUGINS_AND_TABLE:
-        zipped_ds = get_zipped_data_set(config, plugin)
-        csv_data = get_csv_data(zipped_ds)
+        csv_data = get_csv_data(config, plugin)
         update_db(db_conn_params, table, csv_data)
 
 
