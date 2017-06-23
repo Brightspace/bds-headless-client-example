@@ -1,3 +1,5 @@
+import collections
+import datetime
 import io
 import json
 import logging
@@ -7,17 +9,171 @@ import psycopg2
 import requests
 from requests.auth import HTTPBasicAuth
 
+DataSetMetadata = collections.namedtuple('DataSetMetadata', ['plugin', 'table', 'update_query'])
+
+logger = logging.getLogger(__name__)
+
 API_VERSION = 'unstable'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
 CONFIG_LOCATION = 'config.json'
-PLUGINS_AND_TABLE = [
-    ('793668a8-2c58-4e5e-b263-412d28d5703f', 'grade_objects'),
-    ('07a9e561-e22f-4e82-8dd6-7bfb14c91776', 'org_units'),
-    ('1d6d722e-b572-456f-97c1-d526570daa6b', 'users'),
-    ('9d8a96b4-8145-416d-bd18-11402bc58f8d', 'grade_results')
+
+DATA_SET_METADATA = [
+    DataSetMetadata(
+        plugin='07a9e561-e22f-4e82-8dd6-7bfb14c91776',
+        table='org_units',
+        update_query='''
+            INSERT INTO org_units
+                SELECT
+                    OrgUnitId,
+                    Organization,
+                    Type,
+                    Name,
+                    Code,
+                    StartDate,
+                    EndDate,
+                    IsActive,
+                    CreatedDate
+                FROM tmp_org_units
+            ON CONFLICT ON CONSTRAINT org_units_pkey
+            DO UPDATE SET
+                Organization = EXCLUDED.Organization,
+                Type = EXCLUDED.Type,
+                Name = EXCLUDED.Name,
+                Code = EXCLUDED.Code,
+                StartDate = EXCLUDED.StartDate,
+                EndDate = EXCLUDED.EndDate,
+                IsActive = EXCLUDED.IsActive,
+                CreatedDate = EXCLUDED.CreatedDate
+            ;
+        '''
+    ),
+    DataSetMetadata(
+        plugin='793668a8-2c58-4e5e-b263-412d28d5703f',
+        table='grade_objects',
+        update_query='''
+            INSERT INTO grade_objects
+                SELECT
+                    grade_object_id,
+                    org_unit_id,
+                    parent_grade_object_id,
+                    name,
+                    type_name,
+                    category_name,
+                    start_date,
+                    end_date,
+                    is_auto_pointed,
+                    is_formula,
+                    is_bonus,
+                    max_points,
+                    can_exceed_max_grade,
+                    exclude_from_final_grade_calc,
+                    grade_scheme_id,
+                    weight,
+                    num_lowest_grades_to_drop,
+                    num_highest_grades_to_drop,
+                    weight_distribution_type,
+                    created_date,
+                    tool_name,
+                    associated_tool_item_id,
+                    last_modified
+                FROM tmp_grade_objects
+            ON CONFLICT ON CONSTRAINT grade_objects_pkey
+            DO UPDATE SET
+                org_unit_id = EXCLUDED.org_unit_id,
+                parent_grade_object_id = EXCLUDED.parent_grade_object_id,
+                name = EXCLUDED.name,
+                type_name = EXCLUDED.type_name,
+                category_name = EXCLUDED.category_name,
+                start_date = EXCLUDED.start_date,
+                end_date = EXCLUDED.end_date,
+                is_auto_pointed = EXCLUDED.is_auto_pointed,
+                is_formula = EXCLUDED.is_formula,
+                is_bonus = EXCLUDED.is_bonus,
+                max_points = EXCLUDED.max_points,
+                can_exceed_max_grade = EXCLUDED.can_exceed_max_grade,
+                exclude_from_final_grade_calc = EXCLUDED.exclude_from_final_grade_calc,
+                grade_scheme_id = EXCLUDED.grade_scheme_id,
+                weight = EXCLUDED.weight,
+                num_lowest_grades_to_drop = EXCLUDED.num_lowest_grades_to_drop,
+                num_highest_grades_to_drop = EXCLUDED.num_highest_grades_to_drop,
+                weight_distribution_type = EXCLUDED.weight_distribution_type,
+                created_date = EXCLUDED.created_date,
+                tool_name = EXCLUDED.tool_name,
+                associated_tool_item_id = EXCLUDED.associated_tool_item_id,
+                last_modified = EXCLUDED.last_modified
+            ;
+        '''
+    ),
+    DataSetMetadata(
+        plugin='1d6d722e-b572-456f-97c1-d526570daa6b',
+        table='users',
+        update_query='''
+            INSERT INTO users
+                SELECT
+                    UserId,
+                    UserName,
+                    OrgDefinedId,
+                    FirstName,
+                    MiddleName,
+                    LastName,
+                    IsActive,
+                    Organization,
+                    InternalEmail,
+                    ExternalEmail,
+                    SignupDate
+                FROM tmp_users
+            ON CONFLICT ON CONSTRAINT users_pkey
+            DO UPDATE SET
+                UserName = EXCLUDED.UserName,
+                OrgDefinedId = EXCLUDED.OrgDefinedId,
+                FirstName = EXCLUDED.FirstName,
+                MiddleName = EXCLUDED.MiddleName,
+                LastName = EXCLUDED.LastName,
+                IsActive = EXCLUDED.IsActive,
+                Organization = EXCLUDED.Organization,
+                InternalEmail = EXCLUDED.InternalEmail,
+                ExternalEmail = EXCLUDED.ExternalEmail,
+                SignupDate = EXCLUDED.SignupDate
+            ;
+        '''
+    ),
+    DataSetMetadata(
+        plugin='9d8a96b4-8145-416d-bd18-11402bc58f8d',
+        table='grade_results',
+        update_query='''
+            INSERT INTO grade_results
+                SELECT
+                    grade_object_id,
+                    org_unit_id,
+                    user_id,
+                    points_numerator,
+                    points_denominator,
+                    weighted_numerator,
+                    weighted_denominator,
+                    is_released,
+                    is_dropped,
+                    last_modified,
+                    last_modified_by,
+                    comments,
+                    private_comments
+                FROM tmp_grade_results
+            ON CONFLICT ON CONSTRAINT grade_results_pkey
+            DO UPDATE SET
+                points_numerator = EXCLUDED.points_numerator,
+                points_denominator = EXCLUDED.points_denominator,
+                weighted_numerator = EXCLUDED.weighted_numerator,
+                weighted_denominator = EXCLUDED.weighted_denominator,
+                is_released = EXCLUDED.is_released,
+                is_dropped = EXCLUDED.is_dropped,
+                last_modified = EXCLUDED.last_modified,
+                last_modified_by = EXCLUDED.last_modified_by,
+                comments = EXCLUDED.comments,
+                private_comments = EXCLUDED.private_comments
+            ;
+        '''
+    )
 ]
 
-logger = logging.getLogger(__name__)
 
 def get_config():
     with open(CONFIG_LOCATION, 'r') as f:
@@ -66,7 +222,7 @@ def get_csv_data(config, plugin):
             csv_data = zipped_data_set.read(csv_name).decode('utf-8-sig')
             return csv_data
 
-def update_db(db_conn_params, table, csv_data):
+def update_db(db_conn_params, table, csv_data, update_query):
     with psycopg2.connect(**db_conn_params) as conn:
         with conn.cursor() as cur:
             '''
@@ -75,13 +231,32 @@ def update_db(db_conn_params, table, csv_data):
             hardcoded value. In other contexts, always use SQL parameters
             when possible.
             '''
-            cur.execute('TRUNCATE TABLE {};'.format(table))
+
+            cur.execute(
+                '''
+                CREATE TEMP TABLE tmp_{table} AS
+                    SELECT *
+                    FROM {table}
+                    LIMIT 0;
+                '''
+                .format(table=table)
+            )
+
             with io.StringIO(csv_data) as csv_data_stream:
                 cur.copy_expert(
-                    'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER);'.format(table),
+                    '''
+                    COPY tmp_{table}
+                    FROM STDIN
+                    WITH (FORMAT CSV, HEADER);
+                    '''
+                    .format(table=table),
                     csv_data_stream
                 )
-            cur.execute('SELECT * FROM {};'.format(table))
+
+            cur.execute(update_query)
+            cur.execute('DROP TABLE tmp_{table}'.format(table=table))
+
+            cur.execute('SELECT * FROM {table} LIMIT 1;'.format(table=table))
             print(cur.fetchone())
 
         conn.commit()
@@ -103,8 +278,8 @@ if __name__ == '__main__':
         'password': config['dbpassword']
     }
 
-    for plugin, table in PLUGINS_AND_TABLE:
+    for plugin, table, update_query in DATA_SET_METADATA:
         csv_data = get_csv_data(config, plugin)
-        update_db(db_conn_params, table, csv_data)
+        update_db(db_conn_params, table, csv_data, update_query)
 
 
