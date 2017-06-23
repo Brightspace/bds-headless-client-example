@@ -76,10 +76,11 @@ def update_db(db_conn_params, table, csv_data):
             when possible.
             '''
             cur.execute('TRUNCATE TABLE {};'.format(table))
-            cur.copy_expert(
-                'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER)'.format(table),
-                io.StringIO(csv_data)
-            )
+            with io.StringIO(csv_data) as csv_data_stream:
+                cur.copy_expert(
+                    'COPY {} FROM STDIN WITH (FORMAT CSV, HEADER);'.format(table),
+                    csv_data_stream
+                )
             cur.execute('SELECT * FROM {};'.format(table))
             print(cur.fetchone())
 
