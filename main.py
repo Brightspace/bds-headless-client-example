@@ -132,9 +132,6 @@ def update_db(db_conn_params, table, csv_data):
 
             cur.execute('DROP TABLE tmp_{table}'.format(table=table))
 
-            cur.execute('SELECT * FROM {table} LIMIT 1;'.format(table=table))
-            print(cur.fetchone())
-
         conn.commit()
 
 if __name__ == '__main__':
