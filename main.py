@@ -86,15 +86,20 @@ def get_csv_data(config, plugin):
             return csv_data
 
 def update_db(db_conn_params, table, csv_data):
+    '''
+    In a single transaction, update the table by:
+    - Loading the CSV data into a temporary table
+    - Run an update or insert query to update the main table with the data in
+      the temporary table
+    - Delete the temporary table
+
+    Note: using '.format()' because the table name can not be a SQL
+    parameter. This is safe in this context because 'table' is a
+    hardcoded value. In other contexts, always use SQL parameters
+    when possible.
+    '''
     with psycopg2.connect(**db_conn_params) as conn:
         with conn.cursor() as cur:
-            '''
-            Note: using '.format()' because the table name can not be a SQL
-            parameter. This is safe in this context because 'table' is a
-            hardcoded value. In other contexts, always use SQL parameters
-            when possible.
-            '''
-
             cur.execute(
                 '''
                 CREATE TEMP TABLE tmp_{table} AS
