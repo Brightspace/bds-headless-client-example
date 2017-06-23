@@ -46,14 +46,6 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
-def generate_db_conn_params(config):
-    return {
-        'host': config['dbhost'],
-        'dbname': config['dbname'],
-        'user': config['dbuser'],
-        'password': config['dbpassword']
-    }
-
 def get_zipped_data_set(config, plugin):
     endpoint = '{}/d2l/api/lp/{}/dataExport/bds/{}'.format(
         config['bspace_url'],
@@ -103,7 +95,12 @@ if __name__ == '__main__':
     config['refresh_token'] = token_response['refresh_token']
     put_config(config)
 
-    db_conn_params = generate_db_conn_params(config)
+    db_conn_params = {
+        'host': config['dbhost'],
+        'dbname': config['dbname'],
+        'user': config['dbuser'],
+        'password': config['dbpassword']
+    }
 
     for plugin, table in PLUGINS_AND_TABLE:
         zipped_ds = get_zipped_data_set(config, plugin)
