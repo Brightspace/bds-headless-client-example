@@ -53,3 +53,27 @@ using this script.
 ```bash
 python main.py
 ```
+
+## Sample Query
+
+Once the data has been loaded into the database, the following query should return a preview of the data:
+
+```sql
+SELECT
+    u.user_name AS student_name,
+    ou.name AS org_unit_name,
+    go.name AS grade_object_name,
+    ROUND(gr.points_numerator / gr.points_denominator, 2) AS grade
+FROM grade_results gr
+
+INNER JOIN users u
+ON gr.user_id = u.user_id
+
+INNER JOIN org_units ou
+ON gr.org_unit_id = ou.org_unit_id
+
+INNER JOIN grade_objects go
+ON gr.grade_object_id = go.grade_object_id
+
+LIMIT 50;
+```
