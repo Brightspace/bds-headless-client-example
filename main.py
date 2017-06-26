@@ -14,7 +14,7 @@ DataSetMetadata = collections.namedtuple('DataSetMetadata', ['plugin', 'table'])
 
 logger = logging.getLogger(__name__)
 
-API_VERSION = 'unstable'
+API_VERSION = '1.15'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
 CONFIG_LOCATION = 'config.json'
 
@@ -50,7 +50,7 @@ def trade_in_refresh_token(config):
         data={
             'grant_type': 'refresh_token',
             'refresh_token': config['refresh_token'],
-            'scope': 'datahub:*:*'
+            'scope': 'core:*:* datahub:*:*'
         },
         auth=HTTPBasicAuth(config['client_id'], config['client_secret'])
     )
@@ -66,13 +66,19 @@ def put_config(config):
         json.dump(config, f, sort_keys=True)
 
 def get_csv_data(config, plugin):
-    endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/{plugin_id}'.format(
+    # Call {bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/list for a list
+    # of all available data sets
+    endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/download/{plugin_id}'.format(
         bspace_url=config['bspace_url'],
         lp_version=API_VERSION,
         plugin_id=plugin
     )
     headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     response = requests.get(endpoint, headers=headers)
+
+    if response.status_code != 200:
+        logger.error('Status code: %s; content: %s', response.status_code, response.text)
+        response.raise_for_status()
 
     with io.BytesIO(response.content) as response_stream:
         with zipfile.ZipFile(response_stream) as zipped_data_set:
