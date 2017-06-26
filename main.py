@@ -65,32 +65,6 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
-def get_csv_data(config, plugin):
-    # Call {bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/list for a list
-    # of all available data sets
-    endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/download/{plugin_id}'.format(
-        bspace_url=config['bspace_url'],
-        lp_version=API_VERSION,
-        plugin_id=plugin
-    )
-    headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
-    response = requests.get(endpoint, headers=headers)
-
-    if response.status_code != 200:
-        logger.error('Status code: %s; content: %s', response.status_code, response.text)
-        response.raise_for_status()
-
-    with io.BytesIO(response.content) as response_stream:
-        with zipfile.ZipFile(response_stream) as zipped_data_set:
-            files = zipped_data_set.namelist()
-
-            assert len(files) == 1
-            csv_name = files[0]
-
-            # CSV file is UTF-8-BOM encoded
-            csv_data = zipped_data_set.read(csv_name).decode('utf-8-sig')
-            return csv_data
-
 def update_db(db_conn_params, table, csv_data):
     '''
     In a single transaction, update the table by:
@@ -116,16 +90,15 @@ def update_db(db_conn_params, table, csv_data):
                 .format(table=table)
             )
 
-            with io.StringIO(csv_data) as csv_data_stream:
-                cur.copy_expert(
-                    '''
-                    COPY tmp_{table}
-                    FROM STDIN
-                    WITH (FORMAT CSV, HEADER);
-                    '''
-                    .format(table=table),
-                    csv_data_stream
-                )
+            cur.copy_expert(
+                '''
+                COPY tmp_{table}
+                FROM STDIN
+                WITH (FORMAT CSV, HEADER);
+                '''
+                .format(table=table),
+                csv_data
+            )
 
             upsert_query_file = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
@@ -158,5 +131,26 @@ if __name__ == '__main__':
     }
 
     for plugin, table in DATA_SET_METADATA:
-        csv_data = get_csv_data(config, plugin)
-        update_db(db_conn_params, table, csv_data)
+        # Call {bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/list for a list
+        # of all available data sets
+        endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/download/{plugin_id}'.format(
+            bspace_url=config['bspace_url'],
+            lp_version=API_VERSION,
+            plugin_id=plugin
+        )
+        headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
+        response = requests.get(endpoint, headers=headers)
+
+        if response.status_code != 200:
+            logger.error('Status code: %s; content: %s', response.status_code, response.text)
+            response.raise_for_status()
+
+        with io.BytesIO(response.content) as response_stream:
+            with zipfile.ZipFile(response_stream) as zipped_data_set:
+                files = zipped_data_set.namelist()
+
+                assert len(files) == 1
+                csv_name = files[0]
+
+                with zipped_data_set.open(csv_name) as csv_data:
+                    update_db(db_conn_params, table, csv_data)
