@@ -20,6 +20,9 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
 * Dependent libraries installed by running `python -m pip install -r
   requirements.txt`
 * A file named `config.json` based on the [sample file](config-sample.json)
+  * Note: this file contains sensitive information, and its file permissions
+    should be set so that it is only readable by the user running this script
+    (e.g. `chmod 600 config.json`)
 
 ### Configs
 
