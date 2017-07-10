@@ -66,7 +66,11 @@ SELECT
     u.user_name AS student_name,
     ou.name AS org_unit_name,
     go.name AS grade_object_name,
-    ROUND(gr.points_numerator / gr.points_denominator, 2) AS grade
+    CASE
+        WHEN gr.points_denominator = 0
+        THEN 0
+        ELSE ROUND(gr.points_numerator / gr.points_denominator, 2)
+    END AS grade
 FROM grade_results gr
 
 INNER JOIN users u
