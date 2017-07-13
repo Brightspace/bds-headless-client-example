@@ -5,13 +5,17 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
 
 * [Brightspace Data
   Sets](https://community.brightspace.com/s/question/0D56100000xrq5eCAA/)
+  * This example was tested against version 1.0 (determined by the value of
+    config variable `d2l.Tools.BrightspaceDataSets.Version`)
 * [Registered OAuth 2.0
   application](http://docs.valence.desire2learn.com/basic/oauth2.html) and
   corresponding [refresh
   token](https://community.brightspace.com/s/article/ka1610000000pYqAAI/How-to-obtain-an-OAuth-2-0-Refresh-Token)
   with scope `core:*:*`
-* [Python 3.6](https://www.python.org/)
+* [Python 3](https://www.python.org/)
+  * This example was tested using Python 3.6
 * [PostgreSQL](https://www.postgresql.org/) server and database
+  * This example was tested using PostgreSQL 9.6.2
 
 ## Setup
 
