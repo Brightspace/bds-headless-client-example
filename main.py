@@ -1,3 +1,4 @@
+import argparse
 import collections
 import datetime
 import io
@@ -35,9 +36,19 @@ FULL_DATA_SET_METADATA = [
     DataSetMetadata(
         plugin='9d8a96b4-8145-416d-bd18-11402bc58f8d',
         table='grade_results'
+    ),
+    DataSetMetadata(
+        plugin='533f84c8-b2ad-4688-94dc-c839952e9c4f',
+        table='user_enrollments'
     )
 ]
 
+DIFF_DATA_SET_METADATA = [
+    DataSetMetadata(
+        plugin='a78735f2-7210-4a57-aac1-e0f6bd714349',
+        table='user_enrollments'
+    )
+]
 
 def get_config():
     with open(CONFIG_LOCATION, 'r') as f:
@@ -75,6 +86,16 @@ def get_with_auth(endpoint, access_token):
         response.raise_for_status()
 
     return response
+
+def get_plugin_link_mapping(config, access_token):
+    list_endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds'.format(
+        bspace_url=config['bspace_url'],
+        lp_version=API_VERSION
+    )
+    list_response = get_with_auth(list_endpoint, access_token)
+
+    data_sets = list_response.json()['BrightspaceDataSets']
+    return { d['PluginId']: d['DownloadLink'] for d in data_sets }
 
 def update_db(db_conn_params, table, csv_data):
     '''
@@ -136,6 +157,14 @@ def unzip_and_update_db(response_content, db_conn_params, table):
                 update_db(db_conn_params, table, csv_data)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Script for downloading data sets.')
+    parser.add_argument(
+        '--differential',
+        action='store_true',
+        help='Use differential data sets instead of full data sets'
+    )
+    args = parser.parse_args()
+
     config = get_config()
     config['auth_service'] = config.get('auth_service', AUTH_SERVICE)
 
@@ -145,15 +174,8 @@ if __name__ == '__main__':
     config['refresh_token'] = token_response['refresh_token']
     put_config(config)
 
-    list_endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds'.format(
-        bspace_url=config['bspace_url'],
-        lp_version=API_VERSION
-    )
-    list_response = get_with_auth(list_endpoint, token_response['access_token'])
-
-    data_sets = list_response.json()['BrightspaceDataSets']
-    plugin_to_link = { d['PluginId']: d['DownloadLink'] for d in data_sets }
-
+    data_set_metadata = DIFF_DATA_SET_METADATA if args.differential else FULL_DATA_SET_METADATA
+    plugin_to_link = get_plugin_link_mapping(config, token_response['access_token'])
     db_conn_params = {
         'host': config['dbhost'],
         'dbname': config['dbname'],
@@ -161,7 +183,7 @@ if __name__ == '__main__':
         'password': config['dbpassword']
     }
 
-    for plugin, table in FULL_DATA_SET_METADATA:
+    for plugin, table in data_set_metadata:
         response = get_with_auth(
             endpoint=plugin_to_link[plugin],
             access_token=token_response['access_token']
