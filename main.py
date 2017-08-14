@@ -15,11 +15,11 @@ DataSetMetadata = collections.namedtuple('DataSetMetadata', ['plugin', 'table'])
 
 logger = logging.getLogger(__name__)
 
-API_VERSION = '1.15'
+API_VERSION = '1.18'
 AUTH_SERVICE = 'https://auth.brightspace.com/'
 CONFIG_LOCATION = 'config.json'
 
-DATA_SET_METADATA = [
+FULL_DATA_SET_METADATA = [
     DataSetMetadata(
         plugin='07a9e561-e22f-4e82-8dd6-7bfb14c91776',
         table='org_units'
@@ -51,7 +51,7 @@ def trade_in_refresh_token(config):
         data={
             'grant_type': 'refresh_token',
             'refresh_token': config['refresh_token'],
-            'scope': 'core:*:*'
+            'scope': 'core:*:* datahub:dataexports:*'
         },
         auth=HTTPBasicAuth(config['client_id'], config['client_secret'])
     )
@@ -66,7 +66,7 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
-def download_dataset(endpoint, access_token):
+def get_with_auth(endpoint, access_token):
     headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
     response = requests.get(endpoint, headers=headers)
 
@@ -145,6 +145,15 @@ if __name__ == '__main__':
     config['refresh_token'] = token_response['refresh_token']
     put_config(config)
 
+    list_endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds'.format(
+        bspace_url=config['bspace_url'],
+        lp_version=API_VERSION
+    )
+    list_response = get_with_auth(list_endpoint, token_response['access_token'])
+
+    data_sets = list_response.json()['BrightspaceDataSets']
+    plugin_to_link = { d['PluginId']: d['DownloadLink'] for d in data_sets }
+
     db_conn_params = {
         'host': config['dbhost'],
         'dbname': config['dbname'],
@@ -152,14 +161,9 @@ if __name__ == '__main__':
         'password': config['dbpassword']
     }
 
-    for plugin, table in DATA_SET_METADATA:
-        # Call {bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/list for a list
-        # of all available data sets
-        endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds/download/{plugin_id}'.format(
-            bspace_url=config['bspace_url'],
-            lp_version=API_VERSION,
-            plugin_id=plugin
+    for plugin, table in FULL_DATA_SET_METADATA:
+        response = get_with_auth(
+            endpoint=plugin_to_link[plugin],
+            access_token=token_response['access_token']
         )
-
-        response = download_dataset(endpoint, token_response['access_token'])
         unzip_and_update_db(response.content, db_conn_params, table)
