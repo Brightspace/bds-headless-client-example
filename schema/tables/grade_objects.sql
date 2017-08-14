@@ -22,5 +22,8 @@ CREATE TABLE IF NOT EXISTS grade_objects
     created_date TIMESTAMP,
     tool_name TEXT,
     associated_tool_item_id BIGINT,
-    last_modified TIMESTAMP
+    last_modified TIMESTAMP,
+    short_name TEXT,
+    grade_object_type_id BIGINT,
+    sort_order BIGINT
 )
