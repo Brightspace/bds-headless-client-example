@@ -13,5 +13,6 @@ CREATE TABLE IF NOT EXISTS grade_results
     last_modified_by BIGINT,
     comments TEXT,
     private_comments TEXT,
+    is_exempt BOOLEAN,
     PRIMARY KEY (grade_object_id, org_unit_id, user_id)
 )
