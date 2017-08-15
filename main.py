@@ -7,6 +7,7 @@ import os
 import zipfile
 
 import psycopg2
+from psycopg2 import sql
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -82,31 +83,31 @@ def update_db(db_conn_params, table, csv_data):
     - Run an update or insert query to update the main table with the data in
       the temporary table
     - Delete the temporary table
-
-    Note: using '.format()' because the table name can not be a SQL
-    parameter. This is safe in this context because 'table' is a
-    hardcoded value. In other contexts, always use SQL parameters
-    when possible.
     '''
     with psycopg2.connect(**db_conn_params) as conn:
         with conn.cursor() as cur:
+            tmp_table_id = sql.Identifier('tmp_' + table)
+
             cur.execute(
-                '''
-                CREATE TEMP TABLE tmp_{table} AS
-                    SELECT *
-                    FROM {table}
-                    LIMIT 0;
-                '''
-                .format(table=table)
+                sql.SQL('''
+                    CREATE TEMP TABLE {tmp_table} AS
+                        SELECT *
+                        FROM {table}
+                        LIMIT 0;
+                ''')
+                .format(
+                    tmp_table=tmp_table_id,
+                    table=sql.Identifier(table)
+                )
             )
 
             cur.copy_expert(
-                '''
-                COPY tmp_{table}
-                FROM STDIN
-                WITH (FORMAT CSV, HEADER);
-                '''
-                .format(table=table),
+                sql.SQL('''
+                    COPY {tmp_table}
+                    FROM STDIN
+                    WITH (FORMAT CSV, HEADER);
+                ''')
+                .format(tmp_table=tmp_table_id),
                 csv_data
             )
 
@@ -119,7 +120,7 @@ def update_db(db_conn_params, table, csv_data):
             with open(upsert_query_file) as upsert_query:
                 cur.execute(upsert_query.read())
 
-            cur.execute('DROP TABLE tmp_{table}'.format(table=table))
+            cur.execute(sql.SQL('DROP TABLE {tmp_table}').format(tmp_table=tmp_table_id))
 
         conn.commit()
 
