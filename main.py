@@ -65,6 +65,16 @@ def put_config(config):
     with open(CONFIG_LOCATION, 'w') as f:
         json.dump(config, f, sort_keys=True)
 
+def download_dataset(endpoint, access_token):
+    headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
+    response = requests.get(endpoint, headers=headers)
+
+    if response.status_code != 200:
+        logger.error('Status code: %s; content: %s', response.status_code, response.text)
+        response.raise_for_status()
+
+    return response
+
 def update_db(db_conn_params, table, csv_data):
     '''
     In a single transaction, update the table by:
@@ -113,6 +123,17 @@ def update_db(db_conn_params, table, csv_data):
 
         conn.commit()
 
+def unzip_and_update_db(response_content, db_conn_params, table):
+    with io.BytesIO(response_content) as response_stream:
+        with zipfile.ZipFile(response_stream) as zipped_data_set:
+            files = zipped_data_set.namelist()
+
+            assert len(files) == 1
+            csv_name = files[0]
+
+            with zipped_data_set.open(csv_name) as csv_data:
+                update_db(db_conn_params, table, csv_data)
+
 if __name__ == '__main__':
     config = get_config()
     config['auth_service'] = config.get('auth_service', AUTH_SERVICE)
@@ -138,19 +159,6 @@ if __name__ == '__main__':
             lp_version=API_VERSION,
             plugin_id=plugin
         )
-        headers = {'Authorization': 'Bearer {}'.format(token_response['access_token'])}
-        response = requests.get(endpoint, headers=headers)
 
-        if response.status_code != 200:
-            logger.error('Status code: %s; content: %s', response.status_code, response.text)
-            response.raise_for_status()
-
-        with io.BytesIO(response.content) as response_stream:
-            with zipfile.ZipFile(response_stream) as zipped_data_set:
-                files = zipped_data_set.namelist()
-
-                assert len(files) == 1
-                csv_name = files[0]
-
-                with zipped_data_set.open(csv_name) as csv_data:
-                    update_db(db_conn_params, table, csv_data)
+        response = download_dataset(endpoint, token_response['access_token'])
+        unzip_and_update_db(response.content, db_conn_params, table)
