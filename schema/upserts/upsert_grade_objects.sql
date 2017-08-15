@@ -22,7 +22,10 @@ INSERT INTO grade_objects
         created_date,
         tool_name,
         associated_tool_item_id,
-        last_modified
+        last_modified,
+        short_name,
+        grade_object_type_id,
+        sort_order
     FROM tmp_grade_objects
 ON CONFLICT ON CONSTRAINT grade_objects_pkey
 DO UPDATE SET
@@ -47,4 +50,7 @@ DO UPDATE SET
     created_date = EXCLUDED.created_date,
     tool_name = EXCLUDED.tool_name,
     associated_tool_item_id = EXCLUDED.associated_tool_item_id,
-    last_modified = EXCLUDED.last_modified
+    last_modified = EXCLUDED.last_modified,
+    short_name = EXCLUDED.short_name,
+    grade_object_type_id = EXCLUDED.grade_object_type_id,
+    sort_order = EXCLUDED.sort_order
