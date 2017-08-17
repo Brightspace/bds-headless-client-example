@@ -63,12 +63,15 @@ using this script.
 ## Usage
 
 ```bash
-python main.py
+python main.py --help
+python main.py # full data sets
+python main.py --differential
 ```
 
 ## Sample Query
 
-Once the data has been loaded into the database, the following query should return a preview of the data:
+Once the data has been loaded into the database, the following queries should
+return a preview of the data:
 
 ```sql
 SELECT
@@ -90,6 +93,25 @@ ON gr.org_unit_id = ou.org_unit_id
 
 INNER JOIN grade_objects go
 ON gr.grade_object_id = go.grade_object_id
+
+LIMIT 50;
+```
+
+```sql
+SELECT
+    u.first_name AS first_name,
+    u.last_name AS last_name,
+    u.user_name AS user_name,
+    ue.role_name AS enrolled_role_name,
+    ou.name AS org_unit_name,
+    ue.enrollment_date AS enrollment_date
+FROM user_enrollments ue
+
+INNER JOIN users u
+ON ue.user_id = u.user_id
+
+INNER JOIN org_units ou
+ON ue.org_unit_id = ou.org_unit_id
 
 LIMIT 50;
 ```
