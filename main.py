@@ -88,13 +88,19 @@ def get_with_auth(endpoint, access_token):
     return response
 
 def get_plugin_link_mapping(config, access_token):
-    list_endpoint = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds'.format(
+    data_sets = []
+    next_page_url = '{bspace_url}/d2l/api/lp/{lp_version}/dataExport/bds'.format(
         bspace_url=config['bspace_url'],
         lp_version=API_VERSION
     )
-    list_response = get_with_auth(list_endpoint, access_token)
 
-    data_sets = list_response.json()['BrightspaceDataSets']
+    while next_page_url is not None:
+        list_response = get_with_auth(next_page_url, access_token)
+        list_json = list_response.json()
+
+        data_sets += list_json['BrightspaceDataSets']
+        next_page_url = list_json['NextPageUrl']
+
     return { d['PluginId']: d['DownloadLink'] for d in data_sets }
 
 def update_db(db_conn_params, table, csv_data):
