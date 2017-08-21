@@ -113,9 +113,7 @@ def get_number_of_columns(db_conn_params, table):
                     FROM {table}
                     LIMIT 0;
                 ''')
-                .format(
-                    table=sql.Identifier(table)
-                )
+                .format(table=sql.Identifier(table))
             )
 
             return len(cur.description)
