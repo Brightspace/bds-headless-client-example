@@ -168,7 +168,7 @@ def update_db(db_conn_params, table, csv_data):
                 sql.SQL('''
                     COPY {tmp_table}
                     FROM STDIN
-                    WITH (FORMAT CSV, HEADER);
+                    WITH (FORMAT CSV);
                 ''')
                 .format(tmp_table=tmp_table_id),
                 csv_data
