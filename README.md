@@ -10,8 +10,6 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
 
 * [Brightspace Data
   Sets](https://community.brightspace.com/s/question/0D56100000xrq5eCAA/)
-  * This example was tested against version 1.0 (determined by the value of
-    config variable `d2l.Tools.BrightspaceDataSets.Version`)
 * [Registered OAuth 2.0
   application](http://docs.valence.desire2learn.com/basic/oauth2.html) and
   corresponding [refresh
