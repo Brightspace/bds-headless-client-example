@@ -1,5 +1,6 @@
 import argparse
 import collections
+import csv
 import datetime
 import io
 import json
@@ -103,6 +104,39 @@ def get_plugin_link_mapping(config, access_token):
 
     return { d['PluginId']: d['DownloadLink'] for d in data_sets }
 
+def get_number_of_columns(db_conn_params, table):
+    with psycopg2.connect(**db_conn_params) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL('''
+                    SELECT *
+                    FROM {table}
+                    LIMIT 0;
+                ''')
+                .format(table=sql.Identifier(table))
+            )
+
+            return len(cur.description)
+
+def process_csv_stream(csv_input_stream, num_columns_in_table):
+    '''
+    Ignore excessive columns in the CSV due to additive changes / BDS minor
+    changes by ignoring any columns in the CSV past the number of columns in the
+    table
+    '''
+    csv_rows = []
+    csv_reader = csv.reader(csv_input_stream, quoting=csv.QUOTE_MINIMAL)
+    for line in csv_reader:
+        csv_rows.append(line[:num_columns_in_table])
+
+    csv_data = io.StringIO()
+    csv_writer = csv.writer(csv_data, quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writerows(csv_rows)
+
+    # Rewind the stream to the beginning before returning it
+    csv_data.seek(io.SEEK_SET)
+    return csv_data
+
 def update_db(db_conn_params, table, csv_data):
     '''
     In a single transaction, update the table by:
@@ -132,7 +166,7 @@ def update_db(db_conn_params, table, csv_data):
                 sql.SQL('''
                     COPY {tmp_table}
                     FROM STDIN
-                    WITH (FORMAT CSV, HEADER);
+                    WITH (FORMAT CSV);
                 ''')
                 .format(tmp_table=tmp_table_id),
                 csv_data
@@ -151,6 +185,39 @@ def update_db(db_conn_params, table, csv_data):
 
         conn.commit()
 
+def batch_update_db(db_conn_params, table, csv_file, batch_size=10000):
+    # Remove the first row, which contains the headers
+    csv_file.readline()
+
+    num_columns = get_number_of_columns(db_conn_params, table)
+    csv_input_stream = io.StringIO()
+
+    def update_db_with_batch(input_stream):
+        '''
+        Helper method that forms a closure so we don't have to pass many of the
+        values used in this method as arguments
+        '''
+
+        # Rewind the stream to the beginning before passing it on
+        input_stream.seek(io.SEEK_SET)
+
+        with process_csv_stream(input_stream, num_columns) as csv_data:
+            update_db(db_conn_params, table, csv_data)
+
+        input_stream.close()
+
+    i = 0
+    for line in csv_file:
+        csv_input_stream.write(line.decode('utf-8'))
+        i += 1
+
+        if i == batch_size:
+            update_db_with_batch(csv_input_stream)
+            csv_input_stream = io.StringIO()
+            i = 0
+
+    update_db_with_batch(csv_input_stream)
+
 def unzip_and_update_db(response_content, db_conn_params, table):
     with io.BytesIO(response_content) as response_stream:
         with zipfile.ZipFile(response_stream) as zipped_data_set:
@@ -159,8 +226,8 @@ def unzip_and_update_db(response_content, db_conn_params, table):
             assert len(files) == 1
             csv_name = files[0]
 
-            with zipped_data_set.open(csv_name) as csv_data:
-                update_db(db_conn_params, table, csv_data)
+            with zipped_data_set.open(csv_name) as csv_file:
+                batch_update_db(db_conn_params, table, csv_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script for downloading data sets.')
