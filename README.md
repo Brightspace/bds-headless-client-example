@@ -5,6 +5,7 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
 | ----------------------------- | ----------------------- |
 | [Brightspace Data Sets - Headless (Non-Interactive) Client Example](https://community.brightspace.com/s/article/ka1610000000poFAAQ/Brightspace-Data-Sets-Headless-Non-Interactive-Client-Example) | [1.0.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.0.0)
 | [Brightspace Data Sets - Differential Data Sets Client Example](https://community.brightspace.com/s/article/ka3610000005uzcAAA/Brightspace-Data-Sets-Differential-Data-Sets-Client-Example) | [1.1.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.1.0)
+| [Brightspace Data Sets - Additive Changes Support Client Example](https://community.brightspace.com/s/article/ka3610000005uzhAAA/Brightspace-Data-Sets-Additive-Changes-Support-Client-Example) | [1.2.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.2.0)
 
 ## Prerequisites
 
