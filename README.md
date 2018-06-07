@@ -15,7 +15,7 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
   application](http://docs.valence.desire2learn.com/basic/oauth2.html) and
   corresponding [refresh
   token](https://community.brightspace.com/s/article/ka1610000000pYqAAI/How-to-obtain-an-OAuth-2-0-Refresh-Token)
-  with scope `core:*:*`
+  with scope `datahub:dataexports:*`
 * [Python 3](https://www.python.org/)
   * This example was tested using Python 3.6
 * [PostgreSQL](https://www.postgresql.org/) server and database
