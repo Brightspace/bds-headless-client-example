@@ -12,7 +12,8 @@ INSERT INTO grade_results
         last_modified,
         last_modified_by,
         comments,
-        private_comments
+        private_comments,
+        is_exempt
     FROM tmp_grade_results
 ON CONFLICT ON CONSTRAINT grade_results_pkey
 DO UPDATE SET
@@ -25,4 +26,5 @@ DO UPDATE SET
     last_modified = EXCLUDED.last_modified,
     last_modified_by = EXCLUDED.last_modified_by,
     comments = EXCLUDED.comments,
-    private_comments = EXCLUDED.private_comments
+    private_comments = EXCLUDED.private_comments,
+    is_exempt = EXCLUDED.is_exempt

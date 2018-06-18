@@ -4,10 +4,12 @@ INSERT INTO user_enrollments
         user_id,
         role_name,
         enrollment_date,
-        enrollment_type
+        enrollment_type,
+        role_id
     FROM tmp_user_enrollments
 ON CONFLICT ON CONSTRAINT user_enrollments_pkey
 DO UPDATE SET
     role_name = EXCLUDED.role_name,
     enrollment_date = EXCLUDED.enrollment_date,
-    enrollment_type = EXCLUDED.enrollment_type
+    enrollment_type = EXCLUDED.enrollment_type,
+    role_id = EXCLUDED.role_id

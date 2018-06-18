@@ -5,5 +5,6 @@ CREATE TABLE IF NOT EXISTS user_enrollments
     role_name TEXT,
     enrollment_date TIMESTAMP,
     enrollment_type TEXT,
+    role_id BIGINT,
     PRIMARY KEY (org_unit_id, user_id)
 )
