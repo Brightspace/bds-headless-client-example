@@ -3,5 +3,5 @@ python:
   - 3.6
 install:
     - pip install -r requirements.txt
-    - pip install pylint==1.7.1
+    - pip install pylint==2.3.1
 script: pylint -E main.py
