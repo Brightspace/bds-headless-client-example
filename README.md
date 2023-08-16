@@ -3,18 +3,18 @@ Sample Brightspace Data Sets headless client using OAuth 2.0 refresh tokens
 
 | Brightspace Community Article | Version Used in Article |
 | ----------------------------- | ----------------------- |
-| [Brightspace Data Sets - Headless (Non-Interactive) Client Example](https://community.brightspace.com/s/article/ka1610000000poFAAQ/Brightspace-Data-Sets-Headless-Non-Interactive-Client-Example) | [1.0.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.0.0)
-| [Brightspace Data Sets - Differential Data Sets Client Example](https://community.brightspace.com/s/article/ka3610000005uzcAAA/Brightspace-Data-Sets-Differential-Data-Sets-Client-Example) | [1.1.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.1.0)
-| [Brightspace Data Sets - Additive Changes Support Client Example](https://community.brightspace.com/s/article/ka3610000005uzhAAA/Brightspace-Data-Sets-Additive-Changes-Support-Client-Example) | [1.2.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.2.0)
+| [Brightspace Data Sets - Headless (Non-Interactive) Client Example](https://community.d2l.com/brightspace/kb/articles/6089-brightspace-data-sets-headless-non-interactive-client-example) | [1.0.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.0.0)
+| [Brightspace Data Sets - Differential Data Sets Client Example](https://community.d2l.com/brightspace/kb/articles/1252-brightspace-data-sets-differential-data-sets-client-example) | [1.1.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.1.0)
+| [Brightspace Data Sets - Additive Changes Support Client Example](https://community.d2l.com/brightspace/kb/articles/6088-brightspace-data-sets-additive-changes-support-client-example) | [1.2.0](https://github.com/Brightspace/bds-headless-client-example/tree/1.2.0)
 
 ## Prerequisites
 
 * [Brightspace Data
-  Sets](https://community.brightspace.com/s/question/0D56100000xrq5eCAA/)
+  Sets](https://community.d2l.com/brightspace/kb/articles/4518-about-brightspace-data-sets)
 * [Registered OAuth 2.0
   application](http://docs.valence.desire2learn.com/basic/oauth2.html) and
   corresponding [refresh
-  token](https://community.brightspace.com/s/article/ka1610000000pYqAAI/How-to-obtain-an-OAuth-2-0-Refresh-Token)
+  token](https://community.d2l.com/brightspace/kb/articles/1196-how-to-obtain-an-oauth-2-0-refresh-token)
   with scope `datahub:dataexports:*`
 * [Python 3](https://www.python.org/)
   * This example was tested using Python 3.6
